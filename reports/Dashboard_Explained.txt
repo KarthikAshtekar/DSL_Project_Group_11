@@ -1,0 +1,133 @@
+30-Day Technician Allocation Optimizer - Dashboard Explained
+==================================================
+
+OVERVIEW
+--------
+Streamlit dashboard using Gurobi MIP solver to optimize technician allocation for fiber/copper repair jobs over 30 days. Maximizes completed jobs while respecting capacity constraints.
+
+TECHNICAL STACK
+---------------
+- Frontend: Streamlit (Python web app)
+- Optimization: Gurobi (commercial MIP solver)
+- Visualization: Matplotlib/Seaborn
+- Styling: Custom CSS with DM Sans & Space Mono fonts
+- Data: Excel (.xlsx) with 30-day forecasts
+
+SIDEBAR INPUTS (Fixed Configuration)
+------------------------------------
+1. **Forecast Data**: Upload Excel with columns:
+   - Forecasted_day_index (1-30)
+   - Fiber severities: _Critical_Fiber, _High_fibre, _Medium_fibre, _Low_fibre, _Very Low_fibre
+   - Copper severities: new_copper_Critical, new_copper_High, new_copper_Medium, new_copper_Low, new_copper_Very Low
+
+2. **Config**:
+   - Work hours/day: 8 (adjustable 1-24)
+
+3. **Technicians (Fixed)**:
+   | Type | Count |
+   |------|-------|
+   | 1    | 9     |
+   | 2    | 8     |
+   | 3    | 11    |
+   | 4    | 18    |
+   | 5    | 24    |
+   Total: 70 technicians
+
+4. **Priority**: Copper weight β slider (0.0-1.0, default 0.5) - trades off fiber vs copper priority
+
+TABS
+----
+**1. Quick Manual Single Day**
+- Enter current demand manually (fiber/copper/backlog copper by 5 severities)
+- Click "Optimize Now" → Gurobi solves single-day allocation
+- Outputs:
+  - Metrics: Fiber/Copper completed + backlog
+  - Results table: Demand vs Done by severity
+  - (Heatmap removed for cleaner UI)
+
+**2. Full 30-Day Excel**
+- Upload Excel → Automatically optimizes all 30 days sequentially
+- Handles backlog carryover between days
+- Computes baseline "Random" allocation for comparison
+
+OPTIMIZATION MODEL (Gurobi MIP)
+-------------------------------
+Objective: Maximize total jobs = Fiber jobs + β × Copper jobs
+
+Variables:
+- xF[i,j]: Fiber severity i assigned to tech type j
+- xC[i,j]: Copper severity i assigned to tech type j
+
+Constraints:
+1. Demand: sum_j xF[i,j] ≤ demand_F[i], same for copper
+2. Capacity: sum_i t[i,j] × (xF[i,j] + xC[i,j]) ≤ workers[j] × hours
+3. Copper window: Copper gets priority time window (2× capacity)
+
+Time matrix t[i,j] (hours per job):
+Severity 1-5 × Tech 1-5 (25 values hardcoded, faster techs handle easier jobs)
+
+30-DAY EXECUTION FLOW
+---------------------
+For each day 1-30:
+1. Demand = fresh forecast + previous day backlog
+2. Gurobi optimize → get optimal xF, xC
+3. Update backlog = unmet demand
+4. Compute random baseline for comparison
+5. Store daily metrics
+
+KEY METRICS & CHARTS
+--------------------
+**Summary KPIs (6 cards)**:
+- Total jobs (optimizer/random)
+- Improvement (extra jobs)
+- Avg/Peak backlog
+- Avg utilization
+
+**Daily Performance**:
+- Line chart: Optimizer vs Random jobs/day
+- Fill area shows improvement
+- Bar chart: Daily backlog carryforward
+
+**Backlog by Severity**:
+- Stacked bar: Daily backlog split by 5 severities
+- Donut pie: 30-day backlog distribution
+- Summary table: Total/Avg per severity
+
+**Cost Savings Banner**:
+- Monthly: extra_jobs × $10/job
+- Annual projection ×12
+
+TECHNICIAN TYPES & TIME MATRIX
+------------------------------
+t[i,j] defines hours needed for severity i by tech type j:
+Type1 (9 techs): Slowest, good for Very Low (2.0hrs)
+Type5 (24 techs): Fastest, handles Critical (7.0hrs)
+
+CSS FEATURES
+------------
+- Dark gradient theme (#0f0f1a → #16213e)
+- Glassmorphism cards (rgba backgrounds)
+- Hover effects, badges (critical/high/medium/low)
+- Responsive typography (Space Mono monospace)
+
+FILE STRUCTURE & FLOW
+---------------------
+1. CSS styling + rcParams setup
+2. Constants (severities, time matrix, I=1-5, J=1-5)
+3. Sidebar inputs
+4. Quick tab → single day Gurobi
+5. 30day tab → loop over Excel rows with backlog tracking
+6. Results rendering (KPIs → charts → tables)
+
+Gurobi Parameters
+-----------------
+- model.Params.OutputFlag = 0 (silent)
+- INTEGER variables with lb=0
+- Status check for optimality
+
+Usage Instructions
+------------------
+1. Run: streamlit run technician_forecast_final_complete_fixed.py
+2. Quick tab: Enter demands → Optimize Now
+3. 30day tab: Upload Excel → Run 30-Day Optimization
+4. View savings, KPIs, charts at localhost:8502

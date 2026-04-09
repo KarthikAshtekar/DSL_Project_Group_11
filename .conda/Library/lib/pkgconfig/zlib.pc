@@ -1,0 +1,13 @@
+prefix=D:/PGDBA/MyNotes/SEM-2/DSLab/DSL_Project/.conda/Library
+exec_prefix=D:/PGDBA/MyNotes/SEM-2/DSLab/DSL_Project/.conda/Library
+libdir=D:/PGDBA/MyNotes/SEM-2/DSLab/DSL_Project/.conda/Library/lib
+sharedlibdir=D:/PGDBA/MyNotes/SEM-2/DSLab/DSL_Project/.conda/Library/lib
+includedir=D:/PGDBA/MyNotes/SEM-2/DSLab/DSL_Project/.conda/Library/include
+
+Name: zlib
+Description: zlib compression library
+Version: 1.3.1
+
+Requires:
+Libs: -L${libdir} -L${sharedlibdir} -lz
+Cflags: -I${includedir}
